@@ -69,6 +69,7 @@ def obter(cod_pedido: int):
         codigo=pedido.codigo,
         cpf=pedido.cliente.cpf,
         esta_entregue=pedido.esta_entregue,
+        esta_cancelado=pedido.esta_cancelado,
         produtos=[p.codigo for p in pedido.listaProdutos],
     )
 

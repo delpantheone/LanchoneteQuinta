@@ -1,3 +1,4 @@
+from typing import ValuesView
 from domain.cliente import Cliente
 from domain.pedido import Pedido
 from domain.produto import Produto
@@ -147,5 +148,8 @@ class LanchoneteService:
             return False
 
         return pedido.cancelar()
+
+    def listar_pedidos(self) -> ValuesView[Pedido]:
+        return db.pedidos_por_codigo.values()
 
 service = LanchoneteService()

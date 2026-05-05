@@ -81,3 +81,14 @@ class Pedido:
         for p in self.listaProdutos:
             total += p.preco_final()
         return float(total)
+
+    def cancelar(self) -> bool:
+        if self.esta_entregue:
+            return False
+
+        if self.esta_cancelado:
+            return False
+
+        self.esta_cancelado = True
+
+        return True

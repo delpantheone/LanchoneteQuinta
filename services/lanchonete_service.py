@@ -152,7 +152,7 @@ class LanchoneteService:
     def listar_pedidos(self) -> ValuesView[Pedido]:
         return db.pedidos_por_codigo.values()
 
-    def listar_pedidos_cancelados(self):
+    def listar_pedidos_cancelados(self) -> list[Pedido]:
         pedidos = self.listar_pedidos()
         pedidos_cancelados = [p for p in pedidos if p.esta_cancelado]
 

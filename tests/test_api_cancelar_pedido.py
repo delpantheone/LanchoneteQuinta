@@ -22,3 +22,12 @@ def test_deve_cancelar_pedido_com_sucesso(client):
 
     assert data["ok"]
     assert data["mensagem"] == "Pedido cancelado com sucesso"
+
+def test_nao_deve_cancelar_pedido_inexistente(client):
+    response = client.post("/lanchonete/pedidos/999/cancelar")
+    
+    response.status_code == 400
+
+    data = response.json()
+    
+    data["mensagem"] = "Pedido não encontrado ou não pode ser cancelado"

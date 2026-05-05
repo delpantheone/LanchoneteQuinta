@@ -19,6 +19,7 @@ def criar(payload: PedidoCreate):
         codigo=pedido.codigo,
         cpf=pedido.cliente.cpf,
         esta_entregue=pedido.esta_entregue,
+        esta_cancelado=pedido.esta_cancelado,
         produtos=[p.codigo for p in pedido.listaProdutos],
     )
 
@@ -43,6 +44,20 @@ def finalizar(cod_pedido: int):
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     return {"total": total}
 
+@router.post("/{cod_pedido}/cancelar")
+def cancelar_pedido(cod_pedido: int):
+    resultado = service.cancelar_pedido(cod_pedido)
+
+    if not resultado:
+        raise HTTPException(
+            status_code=400,
+            detail="Pedido não encontrado ou não pode ser cancelado"
+        )
+
+    return {
+        "ok": True,
+        "mensagem": "Pedido cancelado com sucesso"
+    }
 
 @router.get("/{cod_pedido}", response_model=PedidoOut)
 def obter(cod_pedido: int):

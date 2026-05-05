@@ -23,6 +23,24 @@ def criar(payload: PedidoCreate):
         produtos=[p.codigo for p in pedido.listaProdutos],
     )
 
+@router.get("/cancelados", response_model=list[PedidoOut])
+def listar_pedidos_cancelados():
+    pedidos = service.listar_pedidos_cancelados()
+
+    resposta = []
+
+    for pedido in pedidos:
+        resposta.append(
+            PedidoOut(
+                codigo=pedido.codigo,
+                cpf=pedido.cliente.cpf,
+                esta_entregue=pedido.esta_entregue,
+                esta_cancelado=pedido.esta_cancelado,
+                produtos=[p.codigo for p in pedido.listaProdutos]
+            )
+        )
+
+    return resposta
 
 @router.put("/{cod_pedido}/itens")
 def adicionar_item(cod_pedido: int, payload: PedidoAddItem):
@@ -72,22 +90,3 @@ def obter(cod_pedido: int):
         esta_cancelado=pedido.esta_cancelado,
         produtos=[p.codigo for p in pedido.listaProdutos],
     )
-
-@router.get("/cancelados", response_model=list[PedidoOut])
-def listar_pedidos_cancelados():
-    pedidos = service.listar_pedidos_cancelados()
-
-    resposta = []
-
-    for pedido in pedidos:
-        resposta.append(
-            PedidoOut(
-                codigo=pedido.codigo,
-                cpf=pedido.cliente.cpf,
-                esta_entregue=pedido.esta_entregue,
-                esta_cancelado=pedido.esta_cancelado,
-                produtos=[p.codigo for p in pedido.listaProdutos]
-            )
-        )
-
-    return resposta

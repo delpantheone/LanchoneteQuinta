@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from schemas.pedido import PedidoAddItem, PedidoCreate, PedidoOut, ObservacaoInput
+from schemas.pedido import ObservacaoInput, PedidoAddItem, PedidoCreate, PedidoOut, ObservacaoOut
 from services.lanchonete_service import service
 
 router = APIRouter(prefix="/lanchonete/pedidos", tags=["pedidos"])
@@ -43,6 +43,18 @@ def listar_pedidos_cancelados():
 
     return resposta
 
+
+@router.get("/{cod_pedido}/observacao", response_model=ObservacaoOut)
+def buscar_observacao(cod_pedido: int):
+    pedido = service.buscar_observacao_pedido(cod_pedido)
+
+    if pedido is None:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    return ObservacaoOut(
+        codigo=pedido.codigo,
+        observacao=pedido.observacao
+    )
 
 @router.put("/{cod_pedido}/itens")
 def adicionar_item(cod_pedido: int, payload: PedidoAddItem):

@@ -179,5 +179,13 @@ class LanchoneteService:
 
         return True
 
+    def buscar_observacao_pedido(self, cod_pedido: int):
+        pedido = self.obter_pedido(cod_pedido)
+
+        if pedido is None:
+            return None
+
+        return pedido
+
 
 service = LanchoneteService()

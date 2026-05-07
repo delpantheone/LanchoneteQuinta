@@ -1,4 +1,5 @@
 from typing import ValuesView
+
 from domain.cliente import Cliente
 from domain.pedido import Pedido
 from domain.produto import Produto
@@ -42,7 +43,9 @@ class LanchoneteService:
         """
         return db.clientes_por_cpf.get(cpf)
 
-    def criar_produto(self, codigo: int, valor: float, tipo: int, desconto_percentual: float = 0.0) -> Produto:
+    def criar_produto(
+        self, codigo: int, valor: float, tipo: int, desconto_percentual: float = 0.0
+    ) -> Produto:
         """Cria e persiste um novo produto.
 
         Args:
@@ -54,7 +57,12 @@ class LanchoneteService:
         Returns:
             Produto criado.
         """
-        produto = Produto(codigo=codigo, valor=valor, tipo=tipo, desconto_percentual=desconto_percentual)
+        produto = Produto(
+            codigo=codigo,
+            valor=valor,
+            tipo=tipo,
+            desconto_percentual=desconto_percentual,
+        )
         db.produtos_por_id[codigo] = produto
         return produto
 
@@ -82,7 +90,9 @@ class LanchoneteService:
         produto.valor = novo_valor
         return True
 
-    def criar_pedido(self, cpf: str, cod_produto: int, qtd_max_produtos: int) -> Pedido | None:
+    def criar_pedido(
+        self, cpf: str, cod_produto: int, qtd_max_produtos: int
+    ) -> Pedido | None:
         """Cria um pedido com o primeiro produto já adicionado.
 
         Args:
@@ -157,5 +167,17 @@ class LanchoneteService:
         pedidos_cancelados = [p for p in pedidos if p.esta_cancelado]
 
         return pedidos_cancelados
+
+    def adicionar_observacao(self, cod_pedido: int, observacao: str) -> bool:
+
+        pedido = self.obter_pedido(cod_pedido)
+
+        if pedido is None:
+            return False
+
+        pedido.adicionar_observacao(observacao)
+
+        return True
+
 
 service = LanchoneteService()

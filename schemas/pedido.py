@@ -27,3 +27,7 @@ class PedidoOut(BaseModel):
 
 class ObservacaoInput(BaseModel):
     observacao: str
+
+class ObservacaoOut(BaseModel):
+    codigo: int
+    observacao: str

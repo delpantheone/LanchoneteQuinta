@@ -24,3 +24,6 @@ class PedidoOut(BaseModel):
     esta_entregue: bool
     esta_cancelado: bool
     produtos: List[int]
+
+class ObservacaoInput(BaseModel):
+    observacao: str

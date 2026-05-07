@@ -34,6 +34,7 @@ class Pedido:
         self.listaProdutos: List[Produto] = []
         self.esta_entregue: bool = False
         self.esta_cancelado: bool = False
+        self.observacao: str
 
         if self.qtd_max_produtos <= 0:
             raise ValueError("Quantidade máxima deve ser maior que zero")
@@ -90,5 +91,24 @@ class Pedido:
             return False
 
         self.esta_cancelado = True
+
+        return True
+
+    def adicionar_observacao(self, observacao: str) -> bool:
+        if self.esta_entregue:
+            return False
+
+        if observacao is None:
+            return False
+
+        observacao = observacao.strip()
+
+        if observacao == "":
+            return False
+
+        if len(observacao) > 200:
+            return False
+
+        self.observacao = observacao
 
         return True

@@ -1,89 +1,98 @@
 def test_deve_cancelar_pedido_com_sucesso(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post("/produtos", json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10})
-    assert r2.status_code == 200
-    r3 = client.post("/produtos", json={"codigo": "2", "valor": 10, "tipo": 1, "desconto_percentual": 5})
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r4 = client.post("/lanchonete/pedidos", json={"cpf": cliente["cpf"], "cod_produto": p1["codigo"], "qtd_max_produtos": 10})
-    assert r4.status_code == 200
-    pedido = r4.json()
-    p2 = r3.json()
-    r5 = client.put(f"/lanchonete/pedidos/{pedido["codigo"]}/itens", json={"cod_produto": p2["codigo"]})
-    assert r5.status_code == 200
-    
-    response = client.post("/lanchonete/pedidos/1/cancelar")
+    """Verifica o fluxo feliz do cancelamento de pedido.
+
+    Cenário:
+        Um cliente e um produto são cadastrados, um pedido é criado e
+        em seguida o endpoint PATCH /cancelar é chamado.
+
+    Resultado esperado:
+        - Status HTTP 200
+        - Corpo com ok=True e mensagem de confirmação
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
+
+    response = client.patch(f"/lanchonete/pedidos/{cod_pedido}/cancelar")
 
     assert response.status_code == 200
 
     data = response.json()
-
-    assert data["ok"]
+    assert data["ok"] is True
     assert data["mensagem"] == "Pedido cancelado com sucesso"
 
+
 def test_nao_deve_cancelar_pedido_inexistente(client):
-    response = client.post("/lanchonete/pedidos/999/cancelar")
-    
-    response.status_code == 400
+    """Garante que tentar cancelar um pedido inexistente retorna erro.
 
-    data = response.json()
-    
-    data["mensagem"] = "Pedido não encontrado ou não pode ser cancelado"
+    Cenário:
+        Nenhum pedido é criado. O endpoint é chamado com um código
+        que não existe no repositório (999).
 
-def test_nao_deve_cancelar_pedido_finalizado(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post("/produtos", json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10})
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r3 = client.post("/lanchonete/pedidos", json={"cpf": cliente["cpf"], "cod_produto": p1["codigo"], "qtd_max_produtos": 10})
-    assert r3.status_code == 200
-    pedido = r3.json()
-    r3 = client.post(f"/lanchonete/pedidos/{pedido["codigo"]}/finalizar")
-    assert r3.status_code == 200
-    response = client.post(f"/lanchonete/pedidos/{pedido["codigo"]}/cancelar")
+    Resultado esperado:
+        - Status HTTP 400
+        - Mensagem de erro indicando que o pedido não foi encontrado
+    """
+    response = client.patch("/lanchonete/pedidos/999/cancelar")
+
     assert response.status_code == 400
 
+    data = response.json()
+    assert data["detail"] == "Pedido não encontrado ou não pode ser cancelado"
+
+
+def test_nao_deve_cancelar_pedido_finalizado(client):
+    """Garante que um pedido já finalizado não pode ser cancelado.
+
+    Cenário:
+        Um pedido é criado e finalizado via PATCH /finalizar.
+        Em seguida, tenta-se cancelá-lo.
+
+    Regra de negócio:
+        Um pedido finalizado (entregue) não pode ser revertido.
+
+    Resultado esperado:
+        - Status HTTP 400
+        - Mesma mensagem de erro do caso de pedido inexistente,
+          pois a API não distingue o motivo da recusa
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
+    client.post(f"/lanchonete/pedidos/{cod_pedido}/finalizar")
+
+    response = client.patch(f"/lanchonete/pedidos/{cod_pedido}/cancelar")
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Pedido não encontrado ou não pode ser cancelado"
+
+
 def test_deve_listar_pedidos_cancelados(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post("/produtos", json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10})
-    assert r2.status_code == 200
-    r3 = client.post("/produtos", json={"codigo": "2", "valor": 10, "tipo": 1, "desconto_percentual": 5})
-    assert r3.status_code == 200
+    """Verifica que o endpoint de listagem retorna apenas pedidos cancelados.
 
-    cliente = r1.json()
-    p1 = r2.json()
-    p2 = r3.json()
+    Cenário:
+        Um pedido é criado e cancelado. Em seguida, GET /cancelados
+        é chamado para consultar a lista.
 
-    r4 = client.post("/lanchonete/pedidos", json={"cpf": cliente["cpf"], "cod_produto": p1["codigo"], "qtd_max_produtos": 10})
-    assert r4.status_code == 200
-    r5 = client.post("/lanchonete/pedidos", json={"cpf": cliente["cpf"], "cod_produto": p2["codigo"], "qtd_max_produtos": 10})
-    assert r5.status_code == 200
-    
-    pedido1 = r4.json()
-    pedido2 = r5.json()
-
-    r6 = client.put(f"/lanchonete/pedidos/{pedido1["codigo"]}/itens", json={"cod_produto": p2["codigo"]})
-    assert r6.status_code == 200
-    r7 = client.put(f"/lanchonete/pedidos/{pedido2["codigo"]}/itens", json={"cod_produto": p1["codigo"]})
-    assert r7.status_code == 200
-    r8 = client.post(f"/lanchonete/pedidos/{pedido1["codigo"]}/cancelar")
-    assert r8.status_code == 200
-    r9 = client.post(f"/lanchonete/pedidos/{pedido2["codigo"]}/cancelar")
-    assert r9.status_code == 200
+    Resultado esperado:
+        - Status HTTP 200
+        - Resposta é uma lista com pelo menos um item
+        - O pedido retornado possui esta_cancelado=True
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
+    client.patch(f"/lanchonete/pedidos/{cod_pedido}/cancelar")
 
     response = client.get("/lanchonete/pedidos/cancelados")
 
     assert response.status_code == 200
 
     data = response.json()
-
-    assert type(data) is list
-
-    assert len([p["esta_cancelado"] for p in data]) >= 1
-
-    assert data[0]["esta_cancelado"]
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert data[0]["esta_cancelado"] is True

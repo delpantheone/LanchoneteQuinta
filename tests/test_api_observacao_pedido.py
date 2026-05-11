@@ -1,130 +1,111 @@
 def test_deve_adicionar_observacao(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post(
-        "/produtos",
-        json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10},
-    )
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r3 = client.post(
-        "/lanchonete/pedidos",
-        json={
-            "cpf": cliente["cpf"],
-            "cod_produto": p1["codigo"],
-            "qtd_max_produtos": 10,
-        },
-    )
-    assert r3.status_code == 200
-    pedido = r3.json()
+    """Verifica o fluxo feliz de adição de observação.
+
+    Cenário:
+        Um cliente, produto e pedido são criados. A observação é enviada
+        via POST /{cod_pedido}/observacao.
+
+    Resultado esperado:
+        - Status HTTP 200
+        - Corpo com ok=True e mensagem de confirmação
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
 
     response = client.post(
-        f"/lanchonete/pedidos/{pedido['codigo']}/observacao",
+        f"/lanchonete/pedidos/{cod_pedido}/observacao",
         json={"observacao": "Sem cebola"},
     )
 
     assert response.status_code == 200
 
     data = response.json()
+    assert data["ok"] is True
     assert data["mensagem"] == "Observação adicionada com sucesso"
 
 
 def test_nao_deve_aceitar_observacao_vazia(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post(
-        "/produtos",
-        json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10},
-    )
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r3 = client.post(
-        "/lanchonete/pedidos",
-        json={
-            "cpf": cliente["cpf"],
-            "cod_produto": p1["codigo"],
-            "qtd_max_produtos": 10,
-        },
-    )
-    assert r3.status_code == 200
-    pedido = r3.json()
+    """Garante que uma observação vazia é rejeitada.
+
+    Cenário:
+        Um pedido é criado e o endpoint é chamado com observacao="".
+
+    Regra de negócio:
+        Observações vazias ou compostas só de espaços não são permitidas.
+
+    Resultado esperado:
+        - Status HTTP 400
+        - Mensagem de erro indicando pedido inválido
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
 
     response = client.post(
-        f"/lanchonete/pedidos/{pedido['codigo']}/observacao",
+        f"/lanchonete/pedidos/{cod_pedido}/observacao",
         json={"observacao": ""},
     )
 
     assert response.status_code == 400
+    assert response.json()["detail"] == "Pedido não encontrado ou inválido"
+
 
 def test_nao_deve_adicionar_observacao_em_pedido_finalizado(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post(
-        "/produtos",
-        json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10},
-    )
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r3 = client.post(
-        "/lanchonete/pedidos",
-        json={
-            "cpf": cliente["cpf"],
-            "cod_produto": p1["codigo"],
-            "qtd_max_produtos": 10,
-        },
-    )
-    assert r3.status_code == 200
-    pedido = r3.json()
+    """Garante que pedido finalizado não aceita observação.
 
-    r4 = client.post(f"/lanchonete/pedidos/{pedido['codigo']}/finalizar")
-    assert r4.status_code == 200
+    Cenário:
+        Um pedido é criado e finalizado. Em seguida, tenta-se adicionar
+        uma observação.
+
+    Regra de negócio:
+        Após finalização, o pedido não pode ser alterado.
+
+    Resultado esperado:
+        - Status HTTP 400
+        - Mensagem de erro indicando pedido inválido
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
+    client.post(f"/lanchonete/pedidos/{cod_pedido}/finalizar")
 
     response = client.post(
-        "/lanchonete/pedidos/1/observacao",
-        json={
-            "observacao": "Sem molho"
-        }
+        f"/lanchonete/pedidos/{cod_pedido}/observacao",
+        json={"observacao": "Sem molho"},
     )
 
     assert response.status_code == 400
+    assert response.json()["detail"] == "Pedido não encontrado ou inválido"
+
 
 def test_deve_buscar_observacao_pedido(client):
-    r1 = client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
-    assert r1.status_code == 200
-    r2 = client.post(
-        "/produtos",
-        json={"codigo": "1", "valor": 15, "tipo": 1, "desconto_percentual": 10},
-    )
-    assert r2.status_code == 200
-    cliente = r1.json()
-    p1 = r2.json()
-    r3 = client.post(
-        "/lanchonete/pedidos",
-        json={
-            "cpf": cliente["cpf"],
-            "cod_produto": p1["codigo"],
-            "qtd_max_produtos": 10,
-        },
-    )
-    assert r3.status_code == 200
-    pedido = r3.json()
+    """Verifica que a observação registrada pode ser consultada.
 
-    r4 = client.post(
-        f"/lanchonete/pedidos/{pedido['codigo']}/observacao",
-        json={"observacao": "Sem cebola"},
+    Cenário:
+        Um pedido é criado, uma observação é adicionada e em seguida
+        GET /{cod_pedido}/observacao é chamado.
+
+    Resultado esperado:
+        - Status HTTP 200
+        - Corpo com o código do pedido e o texto da observação registrada
+    """
+    client.post("/clientes", json={"cpf": "12345678900", "nome": "Joao"})
+    client.post("/produtos", json={"codigo": 1, "valor": 10.0, "tipo": 2})
+    r = client.post("/lanchonete/pedidos", json={"cpf": "12345678900", "cod_produto": 1, "qtd_max_produtos": 5})
+    cod_pedido = r.json()["codigo"]
+    client.post(
+        f"/lanchonete/pedidos/{cod_pedido}/observacao",
+        json={"observacao": "Carne ao ponto"},
     )
 
-    assert r4.status_code == 200
-
-    response = client.get(
-        "/lanchonete/pedidos/1/observacao"
-    )
+    response = client.get(f"/lanchonete/pedidos/{cod_pedido}/observacao")
 
     assert response.status_code == 200
 
     data = response.json()
-
-    assert data['observacao'] == 'Sem cebola'
+    assert data["codigo"] == cod_pedido
+    assert data["observacao"] == "Carne ao ponto"

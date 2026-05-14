@@ -28,45 +28,14 @@ async def criar(payload: PedidoCreate, svc: LanchoneteService = Depends(get_serv
     return _raw_to_pedido_out(raw)
 
 
-@router.get("/cancelados", response_model=list[PedidoOut])
-def listar_pedidos_cancelados():
-    pedidos = service.listar_pedidos_cancelados()
-
-    resposta = []
-
-    for pedido in pedidos:
-        resposta.append(
-            PedidoOut(
-                codigo=pedido.codigo,
-                cpf=pedido.cliente.cpf,
-                esta_entregue=pedido.esta_entregue,
-                esta_cancelado=pedido.esta_cancelado,
-                produtos=[p.codigo for p in pedido.listaProdutos],
-            )
-        )
-
-    return resposta
-
-
-@router.get("/{cod_pedido}/observacao", response_model=ObservacaoOut)
-def buscar_observacao(cod_pedido: int):
-    pedido = service.buscar_observacao_pedido(cod_pedido)
-
-    if pedido is None:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado")
-
-    return ObservacaoOut(
-        codigo=pedido.codigo,
-        observacao=pedido.observacao
-    )
-
 @router.put("/{cod_pedido}/itens")
 async def adicionar_item(cod_pedido: int, payload: PedidoAddItem, svc: LanchoneteService = Depends(get_service_tortoise)):
     """Adiciona um produto a um pedido existente."""
     ok = await svc.adicionar_item_pedido(cod_pedido, payload.cod_produto)
     if not ok:
         raise HTTPException(
-            status_code=400, detail="Pedido/produto inválido ou limite excedido"
+            status_code=400,
+            detail="Pedido/produto inválido ou limite excedido"
         )
     return {"ok": True}
 

@@ -53,3 +53,21 @@ async def test_fluxo_completo_pedido(client):
     r3 = await client.post(f"/lanchonete/pedidos/{cod_pedido}/finalizar")
     assert r3.status_code == 200
     assert r3.json()["total"] == 29.0
+
+async def test_criar_pedido_com_limite_atingido(client):
+    # 1. Cria o cliente que fará o pedido
+    await client.post("/clientes", json={"cpf": "11122233344", "nome": "Cliente X"})
+
+    # 2. Cria os produtos disponíveis no cardápio
+    #    Produto 1 (tipo 1): desconto será aplicado
+    await client.post("/produtos", json={"codigo": 1, "valor": 10, "tipo": 1, "desconto_percentual": 10})
+    await client.post("/produtos", json={"codigo": 2, "valor": 20, "tipo": 2, "desconto_percentual": 10})
+
+    # 3. Abre o pedido com o primeiro produto já incluído
+    r = await client.post("/lanchonete/pedidos", json={"cpf": "11122233344", "cod_produto": 1, "qtd_max_produtos": 1})
+    assert r.status_code == 200
+    cod_pedido = r.json()["codigo"]  # guarda o código para usar nas próximas chamadas
+
+    # 4. Adiciona o segundo produto ao pedido já existente
+    r2 = await client.put(f"/lanchonete/pedidos/{cod_pedido}/itens", json={"cod_produto": 2})
+    assert r2.status_code == 400

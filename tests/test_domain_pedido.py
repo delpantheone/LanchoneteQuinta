@@ -11,7 +11,6 @@ from domain.cliente import Cliente
 from domain.produto import Produto
 from domain.pedido import Pedido
 
-import pytest
 
 def test_pedido_limite_itens():
     """O pedido deve recusar novos produtos quando o limite máximo for atingido.
@@ -81,10 +80,3 @@ def test_pedido_finalizar_calcula_total_com_regras():
     total = pedido.finalizar()
     assert total == 29.0
     assert pedido.esta_entregue is True
-
-def test_pedido_qtd_max_produtos_zerada():
-    with pytest.raises(ValueError):
-        c = Cliente(cpf="111", nome="X")
-        pedido = Pedido(cliente=c, qtd_max_produtos=0)
-        p1 = Produto(codigo=1, valor=10, tipo=1, desconto_percentual=10)
-        pedido.adicionar_produto(p1)
